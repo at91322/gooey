@@ -142,12 +142,32 @@ class GUIBuilder {
 
         ; Store controls
         group.controls[controlName] := {button: buttonCtrl}
-        this.controls[controlName . "_button"] := buttonCtrl
+        this.controls[controlName . "_updateButton"] := buttonCtrl
 
         ; Update Y position for next control
         group.currentY += 2 * this.controlSpacing
 
         return {button: buttonCtrl}
+    }
+
+    AddActionButton(groupName, controlName, buttonText, buttonXpos, buttonYpos, buttonWidth := 80){
+        if(!this.groupBoxes.Has(groupName)){
+                throw Error("GroupBox '" . groupName . "' not found.")
+            }
+
+            group := this.groupBoxes[groupName]
+
+            ; Add the button ; FIX: x and y positions as parameters
+            buttonCtrl := this.gui.Add("Button",Format("x{1} y{2} w{3}", group.x + buttonXpos, buttonYpos, buttonWidth), buttonText)
+
+            ; Store controls
+            group.controls[controlName] := {button: buttonCtrl}
+            this.controls[controlName . "_actionButton"] := buttonCtrl
+
+            ; Update Y position for next control
+            group.currentY += 2 * this.controlSpacing
+
+            return {button: buttonCtrl}
     }
 
     ; Get control value by name (works with different control types)
@@ -375,7 +395,7 @@ SendTermSnippet(snippet){
 }
 
 ; A utility function that handles toggling checkboxes for attributes in Articulator
-ChangeCheck(GuiControlObj, Info,ArrayOfAttr,Attr){
+ChangeCheck(GuiControlObj, Info, ArrayOfAttr, Attr){
     If(GuiControlObj.Value){
         ArrayOfAttr.Push(Attr)
         MsgBox("Attribute added. Current array: " . ArrayOfAttr.Join(" ,"))
@@ -385,8 +405,8 @@ ChangeCheck(GuiControlObj, Info,ArrayOfAttr,Attr){
 }
 
 ; A utility function for marking areas as under development
-DevMsg(){
-    MsgBox("This feature is under development","DTE Helper Tool","T2.5")
+DevMsg(GuiControlObj, Info){
+    MsgBox("This feature is under development","DTE Helper Tool","T2")
 }
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& General Use Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -416,15 +436,15 @@ CancelClick(builderRef, *){
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& TERM BUILDER Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the TermBuilder GUI
-tbOPENbtn(GuiControlObj, Info){
+tbOPENbtn(GuiControlObj, Info, builderRef){
     TermBuilder_GUI.Show("AutoSize Center")
-    dteGui.Hide()
+    builderRef.gui.Hide()
 }
 
 ; A callback function for closing the Term Builder GUI and returning to the main GUI
 tbToMain(GuiControlObj, Info){
     TermBuilder_GUI.Hide()
-    dteGui.Restore()
+    dteGooey()
 }
 
 ; A callback function to initiate term creation from the TermBuilder GUI
@@ -435,15 +455,15 @@ tbGObtn(GuiControlObj, Info, InstNum, FICE, startRow, endRow){
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& TRANSCRIPT REVIEW Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the TranscriptReview GUI
-trOPENbtn(GuiControlObj, Info){
+trOPENbtn(GuiControlObj, Info, builderRef){
     TranscriptReview_GUI.Show("AutoSize Center")
-    dteGui.Hide()
+    builderRef.gui.Hide()
 }
 
 ; A callback function& for closing the Transcript Review GUI and returning to the main GUI
 trToMain(GuiControlObj, Info){
     TranscriptReview_GUI.Hide()
-    dteGui.Restore()
+    dteGooey()
 }
 
 ; A callback function to initiate transcript review from the TranscriptReview GUI
@@ -455,31 +475,24 @@ trGObtn(GuiControlObj, Info, startRow, endRow){
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& PROGRAM CHANGES Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the ProgramChange GUI
 posOPENbtn(GuiControlObj, Info){
-    ProgramChange_GUI.Show("AutoSize Center")
-    dteGui.Hide()
 }
 
 posToMain(GuiControlObj, Info){
-    ProgramChange_GUI.Hide()
-    dteGui.Restore()
 }
 
 posGObtn(GuiControlObj, Info){
-    ProgramChange_GUI.Hide()
-    DevMsg
-    dteGui.Show()
 }
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& DIPLOMA DATES Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the DiplomaDates GUI
-diplOPENbtn(GuiControlObj, Info){
+diplOPENbtn(GuiControlObj, Info, builderRef){
     DiplDates_GUI.Show("AutoSize Center")
-    dteGui.Hide()
+    builderRef.gui.Hide()
 }
 
 diplToMain(GuiControlObj, Info){
     DiplDates_GUI.Hide()
-    dteGui.Restore()
+    dteGooey()
 }
 
 ; A callback function to initiate the mass batch diploma date process
@@ -489,15 +502,15 @@ diplGObtn(GuiControlObj, Info, startRow, endRow, orderedOn, mailedOn){
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& ARTICULATOR Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the Articulator GUI
-articOPENbtn(GuiControlObj, Info){
+articOPENbtn(GuiControlObj, Info, builderRef){
     Articulator_GUI.Show("AutoSize Center")
-    dteGui.Hide()
+    builderRef.gui.Hide()
 }
 
 ; A callback function for closing the Articulator GUI and returning to the main GUI
 articToMain(GuiControlObj, Info){
     Articulator_GUI.Hide()
-    dteGui.Restore()
+    dteGooey()
 }
 
 ; A callback function to initiate the articulator function
@@ -1193,7 +1206,7 @@ Articulator(startRow,endRow){
 
 ; New Look Update Global Configs GUI
 UpdateConfigs(){
-     ; Create a new GUI builder
+    ; Create a new GUI builder
     builder := GUIBuilder("DTE  |  Update Global Configurations", "Resize")
     builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
 
@@ -1203,15 +1216,16 @@ UpdateConfigs(){
     ; Add controls to the GroupBox
     builder.AddTextEditPair("localInfo", "username", "Username:", 100, IniRead(GlobalConfigFile,"Local","User"))
     builder.AddUpdateButton("localInfo", "usernameUpdate", "Update", 200, "p")
-    builder.controls["usernameUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"Local","User",builder.controls["username_edit"]))
+    builder.controls["usernameUpdate_updateButton"].OnEvent("Click",UpdateConfig.Bind(,,"Local","User",builder.controls["username_edit"]))
 
     ; Create a GroupBox for term context configuration information
     termGroup := builder.CreateGroupBox("termInfo", "Term Settings", 10, , 380, 69)
 
     ; Add controls to the GroupBox
     builder.AddTextEditPair("termInfo", "currentTerm", "Current Term:", 72, IniRead(GlobalConfigFile,"TermContext","CurrentTerm"))
+    builder.controls["currentTerm_edit"].OnEvent("Change",AutoTabGUI.Bind(,,6))
     builder.AddUpdateButton("termInfo", "currentTermUpdate", "Update", 200, "p")
-    builder.controls["currentTermUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"TermContext","CurrentTerm",builder.controls["currentTerm_edit"]))
+    builder.controls["currentTermUpdate_updateButton"].OnEvent("Click",UpdateConfig.Bind(,,"TermContext","CurrentTerm",builder.controls["currentTerm_edit"]))
 
     ; Create a GroupBox for session configuration information
     sessionGroup := builder.CreateGroupBox("sessionInfo", "Session Settings", 10, , 380, 69)
@@ -1219,7 +1233,7 @@ UpdateConfigs(){
     ; Add controls to the GroupBox
     builder.AddTextDropDownListPair("sessionInfo", "systemSpeed", "System Speed:", ["1 (Normal)","2","3","4","5 (Slow)"], 100, IniRead(GlobalConfigFile,"SessionContext","SystemSpeed"))
     builder.AddUpdateButton("sessionInfo", "systemSpeedUpdate", "Update", 200, "p")
-    builder.controls["systemSpeedUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"SessionContext","SystemSpeed",builder.controls["systemSpeed_dropdown"]))
+    builder.controls["systemSpeedUpdate_updateButton"].OnEvent("Click",UpdateConfig.Bind(,,"SessionContext","SystemSpeed",builder.controls["systemSpeed_dropdown"]))
 
     ; Create a GroupBox for appearance configuration information
     appearanceGroup := builder.CreateGroupBox("appearanceInfo", "Appearance Settings", 10, , 380, 150)
@@ -1230,7 +1244,7 @@ UpdateConfigs(){
 
     builder.AddTextDropDownListPair("appearanceInfo", "fontSize", "Font Size:", ["8","10","12","14","16"], 72, Integer((0.5)*(Integer(IniRead(GlobalConfigFile,"Appearance","FontSize")) - 6)))
     builder.AddUpdateButton("appearanceInfo", "fontSizeUpdate", "Update", 228, "p")
-    builder.controls["fontSizeUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"Appearance","FontSize",builder.controls["fontSize_dropdown"]))
+    builder.controls["fontSizeUpdate_updateButton"].OnEvent("Click",UpdateConfig.Bind(,,"Appearance","FontSize",builder.controls["fontSize_dropdown"]))
 
     builder.AddTextDropDownListPair("appearanceInfo", "theme", "Theme:", ["Light", "Dark"], 72, 1)
     builder.AddUpdateButton("appearanceInfo", "themeUpdate", "Update (dev)", 228, "p", 120)
@@ -1451,75 +1465,52 @@ ProgramChange_GUI := Gui("AlwaysOnTop", "DTE  |  Program Changes")
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The MAIN GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-dteGui := Gui(,"DTE Helper Tool")
-    dteGui.SetFont("S" . FONT_SIZE, FONT_NAME)
-    dteGui.MarginX := Layout["marginX"]
-    dteGui.MarginY := Layout["marginY"]
 
-    ; Welcome Text
-    dteGui.Add("Text",,"Welcome, what would you like to do? `n`n`n")
-        
-    ; --- GROUPBOX --- Transcript review processes
-    dteGui.Add(
-        "GroupBox",
-        "section r4.4 w" . (Layout["fontSize"] * 20),
-        "Transcript Review"
-    )
-    ; Articulate SHATATR
-    articOPEN := dteGui.Add(
-        "Button",
-        "xs+" . Layout["smallGap"] . " ys+" . Layout["largeGap"],
-        "Articulate courses"
-    )
-    articOPEN.OnEvent("Click",articOPENbtn)
-    ; Term Builder SHATRNS
-    tbOPEN := dteGui.Add(
-        "Button",
-        "xp",
-        "Build transfer terms"
-    )
-    tbOPEN.OnEvent("Click",tbOPENbtn)
-    ; Transcript Review SHATAEQ
-    trOPEN := dteGui.Add(
-        "Button",
-        "xp",
-        "Enter transfer course history"
-    )
-    trOPEN.OnEvent("Click",trOPENbtn)
+dteGooey(){
+    ; Create a new GUI builder
+    builder := GUIBuilder("DTE Helper Tool", "Resize")
+    builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
 
+    ; Welcome Text and username/current term info
+    builder.gui.Add("Text",,"Welcome, what would you like to do?")
+    builder.gui.Add("Text","section x" . 41*FONT_SIZE . " y10","User: " . IniRead(GlobalConfigFile,"Local","User"))
+    builder.gui.Add("Text","section xs","Term: " . IniRead(GlobalConfigFile,"TermContext","CurrentTerm"))
 
-    ; --- GROUPBOX --- Program change processes
-    dteGui.Add(
-        "GroupBox",
-        "section r2 w" . (Layout["fontSize"] * 14) . " ys",
-        "Program Changes"
-    )
-    ; Program Changes
-    posOPEN := dteGui.Add(
-        "Button", 
-        "xs+" . Layout["smallGap"] . " ys+" . Layout["largeGap"],
-        "Process program`nchange requests"
-    )
-    posOPEN.OnEvent("Click",posOPENbtn)
+    ; Create a GroupBox for transcript articulation workflows
+    artaGroup := builder.CreateGroupBox("arta", "Transcript Review", 10, FONT_SIZE * 8, FONT_SIZE * 18, FONT_SIZE * 12)
 
-    ; --- GROUPBOX --- Diploma processes 
-    dteGui.Add(
-        "GroupBox",
-        "section r2 w" . (Layout["fontSize"] * 12) . " ys",
-        "Diplomas"
-    )
-    ; Diploma Dates SHADIPL
-    diplOPEN := dteGui.Add(
-        "Button",
-        "xs+" . Layout["smallGap"] . " ys+" . Layout["largeGap"],
-        "Enter outgoing`ndiploma dates"
-    )
-    diplOPEN.OnEvent("Click",diplOPENbtn)
+    ; Add the Action Buttons to access sub-GUIs
+    builder.AddActionButton("arta","articulator","Articulate Courses",0,"p+" . 2*FONT_SIZE, 160)
+    builder.controls["articulator_actionButton"].OnEvent("Click",articOPENbtn.Bind(,,builder))
 
-    UsernameTagDTE := dteGui.Add("Text","section x420 y10","User: " . IniRead(GlobalConfigFile,"Local","User"))
-    TermTagDTE := dteGui.Add("Text","section xs","Term: " . IniRead(GlobalConfigFile,"TermContext","CurrentTerm"))
+    builder.AddActionButton("arta","termBuilder","Build Transfer Terms",0,"p+" . 3*FONT_SIZE, 170)
+    builder.controls["termBuilder_actionButton"].OnEvent("Click",tbOPENbtn.Bind(,,builder))
 
+    builder.AddActionButton("arta","transcriptReviewer","Enter Transfer Courses",0,"p+" . 3*FONT_SIZE, 190)
+    builder.controls["transcriptReviewer_actionButton"].OnEvent("Click",trOPENbtn.Bind(,,builder))
 
+    ; Create a GroupBox for program change workflows
+    cposGroup := builder.CreateGroupBox("cpos", "Program Changes", 20*FONT_SIZE, FONT_SIZE * 8, FONT_SIZE * 19, FONT_SIZE * 9)
+
+    ; Add the Action Buttons to access sub-GUIs
+    builder.AddActionButton("cpos","EABcaseGrabber","Assign Cases to Self",0,"p+" . 2*FONT_SIZE, 180)
+    builder.controls["EABcaseGrabber_actionButton"].OnEvent("Click",DevMsg.Bind(,,))
+
+    builder.AddActionButton("cpos","majorChanger","Enter Case Comments",0,"p+" . 3*FONT_SIZE, 200)
+    builder.controls["majorChanger_actionButton"].OnEvent("Click",DevMsg.Bind(,,))
+
+    ; Create a GroupBox for diploma dates workflows
+    shadiplGroup := builder.CreateGroupBox("shadipl", "Diploma Dates", 41*FONT_SIZE, FONT_SIZE * 8, FONT_SIZE * 20, 69)
+
+    ; Add the Action Buttons to access sub-GUIs
+    builder.AddActionButton("shadipl","diplomaSpeedDate","Enter Batch Diploma Dates",0,"p+" . 2*FONT_SIZE, 220)
+    builder.controls["diplomaSpeedDate_actionButton"].OnEvent("Click",diplOPENbtn.Bind(,,builder))
+
+    ; Show the GUI
+    builder.Show("AutoSize Center")
+    
+    return builder
+}
 
 ; **********************************************************************************************************************
 ; ************************************************** HOT KEY SECTION ***************************************************
@@ -1576,15 +1567,14 @@ dteGui := Gui(,"DTE Helper Tool")
     return
 }
 
-^!F10::{
-    ProgramChange_GUI.Show("AutoSize Center")
-}
+; ^!F10::{
+; }
 ; ^!F11::{
 ; }
 
 ; --- Reopen main gui after it has been closed
 ^!F12::{
-    dteGui.Show("AutoSize Center")
+    dteGooey()
 }
 
 ; **********************************************************************************************************************
@@ -1593,7 +1583,7 @@ dteGui := Gui(,"DTE Helper Tool")
 
 ; **** Go Time ****
 ; UpdateGlobalStrings()
-dteGui.Show("AutoSize Center")
+dteGooey()
 
 ; Alt + P pauses the application
 !p::{
