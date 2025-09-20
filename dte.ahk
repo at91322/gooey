@@ -503,20 +503,20 @@ diplGObtn(GuiControlObj, Info, startRow, endRow, orderedOn, mailedOn){
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& ARTICULATOR Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the Articulator GUI
 articOPENbtn(GuiControlObj, Info, builderRef){
-    Articulator_GUI.Show("AutoSize Center")
     builderRef.gui.Hide()
+    ArticulatorGooey()
 }
 
 ; A callback function for closing the Articulator GUI and returning to the main GUI
-articToMain(GuiControlObj, Info){
-    Articulator_GUI.Hide()
+articToMain(GuiControlObj, Info, builderRef){
+    builderRef.gui.Hide()
     dteGooey()
 }
 
 ; A callback function to initiate the articulator function
-articGObtn(GuiControlObj, Info, startRow, endRow){
-    Articulator_GUI.Hide()
-    Articulator(startRow, endRow)
+articGObtn(GuiControlObj, Info, startRow, endRow, builderRef){
+    builderRef.gui.Hide()
+    Articulator(startRow.Value, endRow.Value)
 }
 
 ; A callback for turning the map/menu of attributes into an array of the actual attributes we're sending
@@ -1128,7 +1128,7 @@ Articulator(startRow,endRow){
                 }
             
             ; define the active row first by the start row then loop through as many times as needed to get to the end row
-            activeRow := startRow.Value ; needs .Value when called from GUI
+            activeRow := startRow
             
             ; define the columns for our data/variables
             ; Transfer data
@@ -1148,7 +1148,7 @@ Articulator(startRow,endRow){
 
             ; run through the loop, from the user start
             ; to the user end rows
-            While (activeRow <= endRow.Value){
+            While (activeRow <= endRow){
                 ; define the transfer course cells for the active row
                 TRSubjCell := TRSubjCol . activeRow
                 TRCourseCell := TRCourseCol . activeRow
@@ -1346,7 +1346,7 @@ TranscriptReviewGooey(){
     builder.gui.Add("Text",,"Welcome to the Transcript Reviewer")
 
     ; Create groupbox
-    termBuilderGB := builder.CreateGroupBox("transcriptReviewer", "Enter Transfer Courses - SHATAEQ", 10, FONT_SIZE * 4, 275, FONT_SIZE * 8)
+    transcriptReviewerGB := builder.CreateGroupBox("transcriptReviewer", "Enter Transfer Courses - SHATAEQ", 10, FONT_SIZE * 4, 275, FONT_SIZE * 8)
 
     builder.AddTextEditPair("transcriptReviewer","startRow", "Start row:", FONT_SIZE * 4, 3)
     builder.controls["startRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
@@ -1369,23 +1369,35 @@ TranscriptReviewGooey(){
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Articulator GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; SHATATR
-Articulator_GUI := Gui("AlwaysOnTop", "DTE  |  Articulator")
-    Articulator_GUI.SetFont("S" . FONT_SIZE, FONT_NAME)
-    Articulator_GUI.Add("Text",,"Welcome to the articulator tool. `n")
+ArticulatorGooey(){
+    ; Create a new GUI builder
+    builder := GUIBuilder("DTE  |  Articulator", "Resize")
+    builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
 
-    Articulator_GUI.Add("Text","section","Start row:")
-    start_artgui := Articulator_GUI.Add("Edit","w60 yp Number Limit 2","3")
-    start_artgui.OnEvent("Change",AutoTabGUI.Bind(,,2))
+     ; Welcome Text and username/current term info
+    builder.gui.Add("Text",,"Welcome to the Articulator")
 
-    Articulator_GUI.Add("Text","w68 xs yp+32","End row:")
-    end_artgui := Articulator_GUI.Add("Edit","w60 yp Number Limit 2")
-    end_artgui.OnEvent("Change",AutoTabGUI.Bind(,,2))
+    ; Create groupbox
+    articulatorGB := builder.CreateGroupBox("articulator", "Enter Transfer Course Articulations - SHATATR", 10, FONT_SIZE * 4, 360, FONT_SIZE * 8)
 
-    articCLOSE := Articulator_GUI.Add("Button","NoTab","Home",)
-    articCLOSE.OnEvent("Click", articToMain)
+    builder.AddTextEditPair("articulator","startRow", "Start row:", FONT_SIZE * 4, 3)
+    builder.controls["startRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
+
+    builder.AddTextEditPair("articulator","endRow", "End row:", FONT_SIZE * 4,)
+    builder.controls["endRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
+
+    ; Add buttons
+    buttons := builder.AddStandardButtons(["GO", "Home"])
+
+    ; Set up button events
+    buttons["GO"].OnEvent("Click", articGObtn.Bind(,, builder.controls["startRow_edit"], builder.controls["endRow_edit"], builder))
+    buttons["Home"].OnEvent("Click", articToMain.Bind(,,builder))
+
+    ; Show the GUI
+    builder.Show("AutoSize Center")
     
-    articGO := Articulator_GUI.Add("Button","yp","GO")
-    articGO.OnEvent("Click",articGObtn.Bind(,,start_artgui,end_artgui))
+    return builder
+}
 
 ; Pops up during Articulator to prompt the user about attributes
 Attributes_GUI := Gui("AlwaysOnTop", "Add Attributes")
