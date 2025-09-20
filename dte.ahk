@@ -8,7 +8,7 @@ global THEME := IniRead(GlobalConfigFile,"Appearance","Theme")
 
 
 ; **********************************************************************************************************************
-; ************************************************** CLASSES SECTION ***************************************************
+; *************************************************** CLASS SECTION ****************************************************
 ; **********************************************************************************************************************
 
 class GUIBuilder {
@@ -437,20 +437,20 @@ CancelClick(builderRef, *){
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& TERM BUILDER Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the TermBuilder GUI
 tbOPENbtn(GuiControlObj, Info, builderRef){
-    TermBuilder_GUI.Show("AutoSize Center")
     builderRef.gui.Hide()
+    TermBuilderGooey()
 }
 
 ; A callback function for closing the Term Builder GUI and returning to the main GUI
-tbToMain(GuiControlObj, Info){
-    TermBuilder_GUI.Hide()
+tbToMain(GuiControlObj, Info, builderRef){
+    builderRef.gui.Hide()
     dteGooey()
 }
 
 ; A callback function to initiate term creation from the TermBuilder GUI
-tbGObtn(GuiControlObj, Info, InstNum, FICE, startRow, endRow){
-    TermBuilder_GUI.Hide()
-    TermBuilder(instNum_tbGUI,FICE_tbgui,start_tbgui,end_tbgui)
+tbGObtn(GuiControlObj, Info, InstNum, FICE, startRow, endRow, builderRef){
+    builderRef.gui.Hide()
+    TermBuilder(InstNum,FICE,startRow,endRow)
 }
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& TRANSCRIPT REVIEW Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -1299,31 +1299,42 @@ DiplDates_GUI := Gui("AlwaysOnTop", "DTE  |  Diploma Dates")
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Term Builder GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; SHATRNS
-TermBuilder_GUI := Gui("AlwaysOnTop", "DTE  |  Term Builder")
-    TermBuilder_GUI.SetFont("S" . FONT_SIZE, FONT_NAME)
-    TermBuilder_GUI.Add("Text",,"Welcome to the term builder. `n")
+TermBuilderGooey(){
+    ; Create a new GUI builder
+    builder := GUIBuilder("DTE  |  Term Builder", "Resize")
+    builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
 
-    TermBuilder_GUI.Add("Text","section","Inst Num:")
-    instNum_tbGUI := TermBuilder_GUI.Add("Edit","w60 yp Number Limit 2","1")
-    instNum_tbGUI.OnEvent("Change",AutoTabGUI.Bind(,,2))
+     ; Welcome Text and username/current term info
+    builder.gui.Add("Text",,"Welcome to the Term Builder")
 
-    TermBuilder_GUI.Add("Text","xs yp+32 w49","FICE:")
-    FICE_tbgui := TermBuilder_GUI.Add("Edit","w80 yp Uppercase Limit6")
-    FICE_tbgui.OnEvent("Change",AutoTabGUI.Bind(,,6))
+    ; Create groupbox
+    termBuilderGB := builder.CreateGroupBox("termBuilder", "Build Transfer Terms - SHATRNS", 10, FONT_SIZE * 4, 250, FONT_SIZE * 12)
 
-    TermBuilder_GUI.Add("Text","section x+36 ys","Start row:")
-    start_tbgui := TermBuilder_GUI.Add("Edit","w60 yp Number Limit 2","3")
-    start_tbgui.OnEvent("Change",AutoTabGUI.Bind(,,2))
+    ; Add input control elements
+    builder.AddTextEditPair("termBuilder","instNum", "Inst. Num:", FONT_SIZE * 6, 1)
+    builder.controls["instNum_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
 
-    TermBuilder_GUI.Add("Text","xs yp+32","End row:")
-    end_tbgui := TermBuilder_GUI.Add("Edit","w62 yp Number Limit 2")
-    end_tbgui.OnEvent("Change",AutoTabGUI.Bind(,,2))
+    builder.AddTextEditPair("termBuilder","FICE", "FICE:", FONT_SIZE * 6,)
+    builder.controls["FICE_edit"].OnEvent("Change",AutoTabGUI.Bind(,,6))
 
-    tbguiCLOSE := TermBuilder_GUI.Add("Button","NoTab","Home",)
-    tbguiCLOSE.OnEvent("Click", tbToMain)
+    builder.AddTextEditPair("termBuilder","startRow", "Start row:", FONT_SIZE * 4, 3)
+    builder.controls["startRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
+
+    builder.AddTextEditPair("termBuilder","endRow", "End row:", FONT_SIZE * 4,)
+    builder.controls["endRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
+
+   ; Add buttons
+    buttons := builder.AddStandardButtons(["GO", "Home"])
+
+    ; Set up button events
+    buttons["GO"].OnEvent("Click", tbGObtn.Bind(,,))
+    buttons["Home"].OnEvent("Click", tbToMain.Bind(,,builder))
+
+    ; Show the GUI
+    builder.Show("AutoSize Center")
     
-    tbguiGO := TermBuilder_GUI.Add("Button","yp","GO")
-    tbguiGO.OnEvent("Click",tbGObtn.Bind(instNum_tbGUI,FICE_tbgui,start_tbgui,end_tbgui))
+    return builder
+}
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Transcript Review GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; SHATAEQ
@@ -1569,6 +1580,7 @@ dteGooey(){
 
 ; ^!F10::{
 ; }
+
 ; ^!F11::{
 ; }
 
