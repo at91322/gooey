@@ -130,15 +130,15 @@ class GUIBuilder {
         return {label: labelCtrl, dropDown: checkBoxCtrl}
     }
 
-    AddUpdateButton(groupName, controlName, buttonText, buttonPosition, buttonWidth := 80){
+    AddUpdateButton(groupName, controlName, buttonText, buttonXpos, buttonYpos, buttonWidth := 80){
         if(!this.groupBoxes.Has(groupName)){
             throw Error("GroupBox '" . groupName . "' not found.")
         }
 
         group := this.groupBoxes[groupName]
 
-        ; Add the button
-        buttonCtrl := this.gui.Add("Button",Format("x{1} y{2} w{3}", group.x + 200, buttonPosition, buttonWidth), buttonText)
+        ; Add the button ; FIX: x and y positions as parameters
+        buttonCtrl := this.gui.Add("Button",Format("x{1} y{2} w{3}", group.x + buttonXpos, buttonYpos, buttonWidth), buttonText)
 
         ; Store controls
         group.controls[controlName] := {button: buttonCtrl}
@@ -279,6 +279,7 @@ UpdateConfig(GuiControlObj,Info,Section,Key,editControl){
         local newValue := editControl.Value
         IniWrite(newValue,GlobalConfigFile,Section,Key)
         MsgBox("Global setting: '" . Key . "' updated to: " . newValue, "Success", 4096)
+        Reload
 
     ; Updating the current term auto-updates the previous and next term codes in config settings
     ; the script will use these config values, together with the TermSplitter() function, the insert
@@ -312,10 +313,12 @@ UpdateConfig(GuiControlObj,Info,Section,Key,editControl){
         }
 
         MsgBox("Global setting: '" . Key . "' updated to: " . newValue, "Success", 4096)
+        Reload
     } else if(Section = "Appearance" && Section != "TermContext") {
         local newValue := editControl.Text
         IniWrite(newValue,GlobalConfigFile,Section,Key)
         MsgBox("Global setting: '" . Key . "' updated to: " . newValue, "Success", 4096)
+        Reload
     } else {
         MsgBox("Error when attempting to update global configs.`n See Software Admin","Error")
     }
@@ -399,6 +402,16 @@ AutoTabGUI(Ctrl, Info, Chars){
 hardCloseGUI(GuiControlObj, Info){
     ; MsgBox("You clicked cancel `n The script will restart.","DTE Helper Tool","T1.5")
     Reload
+}
+
+; A callback function for clicking the OK button in a GUI, when OK doesn't do anything
+OKClickBland(builderRef, *){
+    builderRef.gui.Hide()
+}
+
+; A callback function for clicking the cancel button in a GUI
+CancelClick(builderRef, *){
+    builderRef.gui.Hide()
 }
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& TERM BUILDER Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -1181,7 +1194,7 @@ Articulator(startRow,endRow){
 ; New Look Update Global Configs GUI
 UpdateConfigs(){
      ; Create a new GUI builder
-    builder := GUIBuilder("DTE  |  Update Configurations", "Resize")
+    builder := GUIBuilder("DTE  |  Update Global Configurations", "Resize")
     builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
 
     ; Create a GroupBox for local configuration information
@@ -1189,21 +1202,23 @@ UpdateConfigs(){
 
     ; Add controls to the GroupBox
     builder.AddTextEditPair("localInfo", "username", "Username:", 100, IniRead(GlobalConfigFile,"Local","User"))
-    builder.AddUpdateButton("localInfo", "usernameUpdateBtn", "Update", "p")
+    builder.AddUpdateButton("localInfo", "usernameUpdate", "Update", 200, "p")
+    builder.controls["usernameUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"Local","User",builder.controls["username_edit"]))
 
     ; Create a GroupBox for term context configuration information
     termGroup := builder.CreateGroupBox("termInfo", "Term Settings", 10, , 350, 69)
 
     ; Add controls to the GroupBox
     builder.AddTextEditPair("termInfo", "currentTerm", "Current Term:", 72, IniRead(GlobalConfigFile,"TermContext","CurrentTerm"))
-    builder.AddUpdateButton("termInfo", "currentTermUpdateBtn", "Update", "p")
+    builder.AddUpdateButton("termInfo", "currentTermUpdate", "Update", 200, "p")
+    builder.controls["currentTermUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"TermContext","CurrentTerm",builder.controls["currentTerm_edit"]))
 
     ; Create a GroupBox for session configuration information
     sessionGroup := builder.CreateGroupBox("sessionInfo", "Session Settings", 10, , 350, 69)
 
     ; Add controls to the GroupBox
     builder.AddTextDropDownListPair("sessionInfo", "systemSpeed", "System Speed:", ["1 (Normal)","2","3","4","5 (Slow)"], 100, IniRead(GlobalConfigFile,"SessionContext","SystemSpeed"))
-    builder.AddUpdateButton("sessionInfo", "systemSpeedUpdateBtn", "Update", "p")
+    builder.AddUpdateButton("sessionInfo", "systemSpeedUpdate", "Update", 200, "p")
 
     ; Create a GroupBox for appearance configuration information
     appearanceGroup := builder.CreateGroupBox("appearanceInfo", "Appearance Settings", 10, , 350, 121)
@@ -1217,62 +1232,14 @@ UpdateConfigs(){
     buttons := builder.AddStandardButtons(["OK", "Cancel"])
 
     ; Set up button events
-    ; buttons["Apply"].OnEvent("Click", UpdateConfigApplyClick.Bind(builder))
-    ; buttons["Cancel"].OnEvent("Click", CancelClick.Bind(builder))
+    buttons["OK"].OnEvent("Click", OKClickBland.Bind(builder))
+    buttons["Cancel"].OnEvent("Click", CancelClick.Bind(builder))
     
     ; Show the GUI
     builder.Show("AutoSize Center")
     
     return builder
 }
-
-; The Update Global Configurations GUI
-UpdateConfig_GUI := Gui("AlwaysOnTop", "DTE  |  Update Global Configs")
-    UpdateConfig_GUI.SetFont("S" . FONT_SIZE,FONT_NAME)
-    UpdateConfig_GUI.MarginX := Layout["marginX"]
-    UpdateConfig_GUI.MarginY := Layout["marginY"]
-
-    UpdateConfig_GUI.Add("Text",,"WARNING`nYou are updating global configurations.`nDo not make changes if you do not know what you are doing.`n")
-
-    ; ---- Local Configs ----
-    UpdateConfig_GUI.Add("GroupBox", "Section r2.35", "Local Configs")
-    UpdateConfig_GUI.Add("Text","xs+" . Layout["smallGap"] . " ys+" . Layout["largeGap"],"Username:")
-    ConfigUp_Username := UpdateConfig_GUI.Add("Edit","yp Limit30",IniRead(GlobalConfigFile,"Local","User"))
-    UpdateConfig_GUI.Add("Button","xs+" . Layout["mediumGap"] . " yp+" . (Layout["largeGap"] + 10),"UPDATE USERNAME").OnEvent("Click",UpdateConfig.Bind(,,"Local","User",ConfigUp_Username))
-    
-
-     ; ---- Session Configs ----
-    UpdateConfig_GUI.Add("GroupBox", "Section r2.35 ys", "SessionContext Configs")
-    UpdateConfig_GUI.Add("Text","xs+" . Layout["smallGap"] . " ys+" . Layout["largeGap"],"System Speed:")
-    ConfigUp_Speed := UpdateConfig_GUI.Add("Edit","yp Number Limit1",IniRead(GlobalConfigFile,"SessionContext","SystemSpeed"))
-    ConfigUp_Speed.OnEvent("Change",AutoTabGUI.Bind(,,1))
-    UpdateConfig_GUI.Add("Button","xs+" . Layout["mediumGap"] . " yp+" . (Layout["largeGap"] + 10),"UPDATE SPEED").OnEvent("Click",UpdateConfig.Bind(,,"SessionContext","SystemSpeed",ConfigUp_Speed))
-    
-
-    ; ---- Context Configs ----
-    UpdateConfig_GUI.Add("GroupBox","Section r2.35 xm", "Context Configs")
-    UpdateConfig_GUI.Add("Text","xs+" . Layout["smallGap"] . " ys+" . Layout["largeGap"],"Current Term:")
-    ConfigUp_Term := UpdateConfig_GUI.Add("Edit","yp Number Limit6",IniRead(GlobalConfigFile,"TermContext","CurrentTerm"))
-    ConfigUp_Term.OnEvent("Change",AutoTabGUI.Bind(,,6))
-    UpdateConfig_GUI.Add("Button","xs+" . Layout["mediumGap"] . " yp+" . (Layout["largeGap"] + 10),"UPDATE TERM").OnEvent("Click",UpdateConfig.Bind(,,"TermContext","CurrentTerm",ConfigUp_Term))
-    
-   
-    ; ---- Appearance Configs (not functional) ----
-    UpdateConfig_GUI.Add("GroupBox", "Section r4.5 w" . (20 * Layout["fontSize"]) . " ys", "Appearance Configs (dev)")
-
-    UpdateConfig_GUI.Add("Text","w" . (6.1666667 * Layout["fontSize"]) . " xs+" . Layout["smallGap"] . " ys+" . (Layout["largeGap"]),"Theme:")
-    ConfigTheme := UpdateConfig_GUI.Add("DropDownList","w" . Ceil(6.1666667 * Layout["fontSize"]) . " yp Choose1",["Light", "Dark"])
-
-    UpdateConfig_GUI.Add("Text","w" . (6.1666667 * Layout["fontSize"]) . " xs+" . Layout["smallGap"] . " yp+" . (1.5 * Layout["largeGap"]),"Font:")
-    ConfigFontName := UpdateConfig_GUI.Add("DropDownList","w" . Ceil(9.166667 * Layout["fontSize"]) . " yp Choose1",["Lucia Sans"])
-    
-    UpdateConfig_GUI.Add("Text","w" . (6.1666667 * Layout["fontSize"]) . " xs+" . Layout["smallGap"] . " yp+" . (1.5 * Layout["largeGap"]),"Font Size:")
-    ConfigFontSize := UpdateConfig_GUI.Add("DropDownList","w" . Ceil(5 * Layout["fontSize"]) . " yp Choose3",["8","10","12","14","16"])
-
-    UpdateAppearanceConfigBTN := UpdateConfig_GUI.Add("Button","xs+" . Layout["mediumGap"] . " yp+" . (Layout["largeGap"] + 10),"UPDATE APPEARANCE")
-    UpdateAppearanceConfigBTN.OnEvent("Click",UpdateConfig.Bind(,,"Appearance","FontSize",ConfigFontSize))
-    UpdateAppearanceConfigBTN.OnEvent("Click",UpdateConfig.Bind(,,"Appearance","Font",ConfigFontName))
-    UpdateAppearanceConfigBTN.OnEvent("Click",UpdateConfig.Bind(,,"Appearance","Theme",ConfigTheme))
 
 ; The sub-GUIs
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Diploma Dates GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -1558,7 +1525,7 @@ dteGui := Gui(,"DTE Helper Tool")
 }
 ; --- Access GUI to update Global Configs ---
 ^!F2::{
-    UpdateConfig_GUI.Show("AutoSize Center")
+    UpdateConfigs()
 }
 ; ^!F3::{
 ; }
@@ -1605,9 +1572,8 @@ dteGui := Gui(,"DTE Helper Tool")
 ^!F10::{
     ProgramChange_GUI.Show("AutoSize Center")
 }
-^!F11::{
-    UpdateConfigs()
-}
+; ^!F11::{
+; }
 
 ; --- Reopen main gui after it has been closed
 ^!F12::{
@@ -1619,7 +1585,7 @@ dteGui := Gui(,"DTE Helper Tool")
 ; **********************************************************************************************************************
 
 ; **** Go Time ****
-UpdateGlobalStrings()
+; UpdateGlobalStrings()
 dteGui.Show("AutoSize Center")
 
 ; Alt + P pauses the application
