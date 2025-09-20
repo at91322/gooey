@@ -450,7 +450,7 @@ tbToMain(GuiControlObj, Info, builderRef){
 ; A callback function to initiate term creation from the TermBuilder GUI
 tbGObtn(GuiControlObj, Info, InstNum, FICE, startRow, endRow, builderRef){
     builderRef.gui.Hide()
-    TermBuilder(InstNum,FICE,startRow,endRow)
+    TermBuilder(InstNum.Value,FICE.Value,startRow.Value,endRow.Value)
 }
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& TRANSCRIPT REVIEW Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -717,14 +717,14 @@ TermBuilder(InstNum, FICE, startRow, endRow){
         }
     
         ;define the active row first by the start row then loop through as many times as needed to get to the end row
-        activeRow := startRow.Value
+        activeRow := startRow
         prevTermSeqNo := ""
 
         ;define the columns for our data/variables
         TermSeqCol := "A"
         TermCol := "B"
 
-        While (activeRow <= endRow.Value) {
+        While (activeRow <= endRow) {
             ; define the cells for the active row
             TermSeqCell := TermSeqCol . activeRow
             TermCell := TermCol . activeRow
@@ -742,7 +742,7 @@ TermBuilder(InstNum, FICE, startRow, endRow){
             }
 
             ; call the function
-            TermBuilder_DataEntry(InstNum.Value,FICE.Value,prevTermSeqNo,TermSeqNo,Term,LongTerm)
+            TermBuilder_DataEntry(InstNum,FICE,prevTermSeqNo,TermSeqNo,Term,LongTerm)
 
             ; prep next iteration of the loop
             activeRow++
@@ -1327,7 +1327,7 @@ TermBuilderGooey(){
     buttons := builder.AddStandardButtons(["GO", "Home"])
 
     ; Set up button events
-    buttons["GO"].OnEvent("Click", tbGObtn.Bind(,,))
+    buttons["GO"].OnEvent("Click", tbGObtn.Bind(,,builder.controls["instNum_edit"], builder.controls["FICE_edit"], builder.controls["startRow_edit"], builder.controls["endRow_edit"], builder))
     buttons["Home"].OnEvent("Click", tbToMain.Bind(,,builder))
 
     ; Show the GUI
