@@ -315,6 +315,7 @@ CancelClick(builderRef, *) {
 
 !p::{
     Pause(-1)
+    return
 }
 
 !c::{
