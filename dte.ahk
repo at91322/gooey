@@ -456,20 +456,20 @@ tbGObtn(GuiControlObj, Info, InstNum, FICE, startRow, endRow, builderRef){
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& TRANSCRIPT REVIEW Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the TranscriptReview GUI
 trOPENbtn(GuiControlObj, Info, builderRef){
-    TranscriptReview_GUI.Show("AutoSize Center")
     builderRef.gui.Hide()
+    TranscriptReviewGooey()
 }
 
 ; A callback function& for closing the Transcript Review GUI and returning to the main GUI
-trToMain(GuiControlObj, Info){
-    TranscriptReview_GUI.Hide()
+trToMain(GuiControlObj, Info, builderRef){
+    builderRef.gui.Hide()
     dteGooey()
 }
 
 ; A callback function to initiate transcript review from the TranscriptReview GUI
-trGObtn(GuiControlObj, Info, startRow, endRow){
-    TranscriptReview_GUI.Hide()
-    TranscriptReview(startRow,endRow)
+trGObtn(GuiControlObj, Info, startRow, endRow, builderRef){
+    builderRef.gui.Hide()
+    TranscriptReview(startRow.Value,endRow.Value)
 }
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& PROGRAM CHANGES Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -853,7 +853,7 @@ TranscriptReview(startRow, endRow){
                 }
             
             ;define the active row first by the start row then loop through as many times as needed to get to the end row
-            activeRow := startRow.Value
+            activeRow := startRow
             prevTermSeqNo := ""
 
             ;define the columns for our data/variables
@@ -868,7 +868,7 @@ TranscriptReview(startRow, endRow){
 
             ; run through the loop, from the user start
             ; to the user end rows
-            While (activeRow <= endRow.Value){
+            While (activeRow <= endRow){
                 ; define the cells for the active row
                 TermSeqCell := TermSeqCol . activeRow
                 TermCell := TermCol . activeRow
@@ -1335,26 +1335,37 @@ TermBuilderGooey(){
     
     return builder
 }
-
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Transcript Review GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; SHATAEQ
-TranscriptReview_GUI := Gui("AlwaysOnTop", "DTE  |  Transcript Review")
-    TranscriptReview_GUI.SetFont("S" . FONT_SIZE, FONT_NAME)
-    TranscriptReview_GUI.Add("Text",,"Welcome to the transcript reviewer. `n")
+TranscriptReviewGooey(){
+    ; Create a new GUI builder
+    builder := GUIBuilder("DTE  |  Transcript Reviewer", "Resize")
+    builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
 
-    TranscriptReview_GUI.Add("Text","section","Start row:")
-    start_trgui := TranscriptReview_GUI.Add("Edit","w60 yp Number Limit 2","3")
-    start_trgui.OnEvent("Change",AutoTabGUI.Bind(,,2))
+     ; Welcome Text and username/current term info
+    builder.gui.Add("Text",,"Welcome to the Transcript Reviewer")
 
-    TranscriptReview_GUI.Add("Text","w68 xs yp+32","End row:")
-    end_trgui := TranscriptReview_GUI.Add("Edit","w60 yp Number Limit 2")
-    end_trgui.OnEvent("Change",AutoTabGUI.Bind(,,2))
+    ; Create groupbox
+    termBuilderGB := builder.CreateGroupBox("transcriptReviewer", "Enter Transfer Courses - SHATAEQ", 10, FONT_SIZE * 4, 275, FONT_SIZE * 8)
 
-    trguiCLOSE := TranscriptReview_GUI.Add("Button","NoTab","Home",)
-    trguiCLOSE.OnEvent("Click", trToMain)
+    builder.AddTextEditPair("transcriptReviewer","startRow", "Start row:", FONT_SIZE * 4, 3)
+    builder.controls["startRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
+
+    builder.AddTextEditPair("transcriptReviewer","endRow", "End row:", FONT_SIZE * 4,)
+    builder.controls["endRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
+
+    ; Add buttons
+    buttons := builder.AddStandardButtons(["GO", "Home"])
+
+    ; Set up button events
+    buttons["GO"].OnEvent("Click", trGObtn.Bind(,, builder.controls["startRow_edit"], builder.controls["endRow_edit"], builder))
+    buttons["Home"].OnEvent("Click", trToMain.Bind(,,builder))
+
+    ; Show the GUI
+    builder.Show("AutoSize Center")
     
-    trguiGO := TranscriptReview_GUI.Add("Button","yp","GO")
-    trguiGO.OnEvent("Click",trGObtn.Bind(,,start_trgui,end_trgui))
+    return builder
+}
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Articulator GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; SHATATR
