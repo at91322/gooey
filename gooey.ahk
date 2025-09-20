@@ -131,24 +131,44 @@ class GUIBuilder {
         return {label: labelCtrl, dropDown: checkBoxCtrl}
     }
 
-    AddUpdateButton(groupName, controlName, buttonText, buttonPosition, buttonWidth := 80){
+    AddUpdateButton(groupName, controlName, buttonText, buttonXpos, buttonYpos, buttonWidth := 80){
         if(!this.groupBoxes.Has(groupName)){
             throw Error("GroupBox '" . groupName . "' not found.")
         }
 
         group := this.groupBoxes[groupName]
 
-        ; Add the button
-        buttonCtrl := this.gui.Add("Button",Format("x{1} y{2} w{3}", group.x + 200, buttonPosition, buttonWidth), buttonText)
+        ; Add the button ; FIX: x and y positions as parameters
+        buttonCtrl := this.gui.Add("Button",Format("x{1} y{2} w{3}", group.x + buttonXpos, buttonYpos, buttonWidth), buttonText)
 
         ; Store controls
         group.controls[controlName] := {button: buttonCtrl}
-        this.controls[controlName . "_button"] := buttonCtrl
+        this.controls[controlName . "_updateButton"] := buttonCtrl
 
         ; Update Y position for next control
-        group.currentY += this.controlHeight + this.controlSpacing
+        group.currentY += 2 * this.controlSpacing
 
         return {button: buttonCtrl}
+    }
+
+    AddActionButton(groupName, controlName, buttonText, buttonXpos, buttonYpos, buttonWidth := 80){
+        if(!this.groupBoxes.Has(groupName)){
+                throw Error("GroupBox '" . groupName . "' not found.")
+            }
+
+            group := this.groupBoxes[groupName]
+
+            ; Add the button ; FIX: x and y positions as parameters
+            buttonCtrl := this.gui.Add("Button",Format("x{1} y{2} w{3}", group.x + buttonXpos, buttonYpos, buttonWidth), buttonText)
+
+            ; Store controls
+            group.controls[controlName] := {button: buttonCtrl}
+            this.controls[controlName . "_actionButton"] := buttonCtrl
+
+            ; Update Y position for next control
+            group.currentY += 2 * this.controlSpacing
+
+            return {button: buttonCtrl}
     }
 
     ; Get control value by name (works with different control types)
@@ -190,7 +210,7 @@ class GUIBuilder {
     }
 
     ; Show the GUI
-    Show(options := "w400 h300") {
+    Show(options := "AutoSize Center") {
         this.gui.Show(options)
     }
 
