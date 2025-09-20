@@ -230,6 +230,52 @@ ExampleUsage(){
     return builder
 }
 
+UpdateConfigs(){
+     ; Create a new GUI builder
+    builder := GUIBuilder("DTE  |  Update Configurations", "Resize")
+
+    ; Create a GroupBox for local configuration information
+    localGroup := builder.CreateGroupBox("localInfo", "Local Settings", 10, 10, 350, 69)
+
+    ; Add controls to the GroupBox
+    builder.AddTextEditPair("localInfo", "username", "Username:", 100, IniRead(GlobalConfigFile,"Local","Username"))
+
+    ; Create a GroupBox for term context configuration information
+    termGroup := builder.CreateGroupBox("termInfo", "Term Settings", 10, , 350, 69)
+
+    ; Add controls to the GroupBox
+    builder.AddTextEditPair("termInfo", "currentTerm", "Current Term:", 62, IniRead(GlobalConfigFile,"TermContext","CurrentTerm"))
+
+    ; Create a GroupBox for session configuration information
+    sessionGroup := builder.CreateGroupBox("sessionInfo", "Session Settings", 10, , 350, 69)
+
+    ; Add controls to the GroupBox
+    builder.AddTextDropDownListPair("sessionInfo", "systemSpeed", "System Speed:", ["1 (Normal)","2","3","4","5 (Slow)"], 100, IniRead(GlobalConfigFile,"SessionContext","SystemSpeed"))
+
+    ; Create a GroupBox for appearance configuration information
+    appearanceGroup := builder.CreateGroupBox("appearanceInfo", "Appearance Settings", 10, , 350, 121)
+
+    ; Add controls to the GroupBox
+    builder.AddTextDropDownListPair("appearanceInfo", "fontName", "Font:", ["Lucia Sans"], 200, 1)
+    builder.AddTextDropDownListPair("appearanceInfo", "fontSize", "Font Size:", ["8","10","12","14","16"], 200, 3)
+    builder.AddTextDropDownListPair("appearanceInfo", "theme", "Theme:", ["Light", "Dark"], 200, 1)
+
+    ; Add standard buttons
+    buttons := builder.AddStandardButtons(["OK", "Cancel", "Apply"])
+
+    ; Set up button events
+    buttons["Apply"].OnEvent("Click", UpdateConfigApplyClick.Bind(builder))
+    buttons["Cancel"].OnEvent("Click", CancelClick.Bind(builder))
+    
+    ; Show the GUI
+    builder.Show("AutoSize Center")
+    
+    return builder
+}
+; Use IniWrite to update config.ini
+UpdateConfigApplyClick(builderRef, *){
+}
+
 OkClick(builderRef, *) {
     ; Demonstrate getting values
     firstName := builderRef.GetValue("firstName")
@@ -250,8 +296,9 @@ CancelClick(builderRef, *) {
 ^!F1::{
     ExampleUsage()
 }
-; ^!F2::{
-; }
+^!F2::{
+    UpdateConfigs()
+}
 ; ^!F3::{
 ; }
 ; ^!F4::{
