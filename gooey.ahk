@@ -116,7 +116,7 @@ class GUIBuilder {
         ; Add checkbox control next to label
         checkOptions := Format("x{1} y{2} w{3}", group.x + 85, group.currentY, checkBoxWidth)
         if (isChecked){
-            checkOptions *= " Checked"
+            checkOptions .= " Checked"
         }
         checkBoxCtrl := this.gui.Add("CheckBox", checkOptions, checkBoxText)
 
@@ -134,16 +134,16 @@ class GUIBuilder {
     ; Get control value by name (works with different control types)
     GetValue(controlName){
         if(this.controls.Has(controlName . "_edit")){
-            this.controls[controlName . "_edit"].Text
+            return this.controls[controlName . "_edit"].Text
 
         } else if(this.controls.Has(controlName . "_dropdown")){
-            this.controls[controlName . "_dropdown"].Text
+            return this.controls[controlName . "_dropdown"].Text
 
         } else if(this.controls.Has(controlName . "_checkbox")){
-            this.controls[controlName . "_checkbox"].Value
+            return this.controls[controlName . "_checkbox"].Value
 
         } else if(this.controls.Has(controlName)){
-            this.controls[controlName].Text
+            return this.controls[controlName].Text
 
         } else {
             throw Error("Control '" . controlName . "' not found.")
@@ -199,11 +199,57 @@ class GUIBuilder {
 }
 
 ; --- Function Section ---
+ExampleUsage(){
+    ; Create a new GUI builder
+    builder := GUIBuilder("Dynamic GUI Example", "Resize")
+
+    ; Create a GroupBox for user information
+    userGroup := builder.CreateGroupBox("userInfo", "User Information", 10, 10, 350, 150)
+
+    ; Add controls to the GroupBox
+    builder.AddTextEditPair("userInfo", "firstName", "First Name:", 200, "John")
+    builder.AddTextEditPair("userInfo", "lastName", "Last Name:", 200, "Doe")
+    builder.AddTextDropDownListPair("userInfo", "country", "Country:", ["USA", "Canada", "UK", "Germany"], 200, 1)
+    builder.AddTextCheckBoxPair("userInfo", "newsletter", "Options:", "Subscribe to newsletter", true, 200)
+
+    ; Create another GroupBox
+    prefsGroup := builder.CreateGroupBox("preferences", "Preferences", 10, , 350, 100)
+    builder.AddTextDropDownListPair("preferences", "theme", "Theme:", ["Light", "Dark", "Auto"], 200, 2)
+    builder.AddTextCheckBoxPair("preferences", "notifications", "Alerts:", "Enable notifications", false, 200)
+
+    ; Add standard buttons
+    buttons := builder.AddStandardButtons(["OK", "Cancel", "Apply"])
+    
+    ; Set up button events
+    buttons["OK"].OnEvent("Click", OkClick.Bind(builder))
+    buttons["Cancel"].OnEvent("Click", CancelClick.Bind(builder))
+    
+    ; Show the GUI
+    builder.Show("w380 h340")
+    
+    return builder
+}
+
+OkClick(builderRef, *) {
+    ; Demonstrate getting values
+    firstName := builderRef.GetValue("firstName")
+    country := builderRef.GetValue("country")
+    newsletter := builderRef.GetValue("newsletter")
+
+    message := "First Name: " . firstName . "`nCountry: " . country . "`nNewsletter: " . newsletter
+    MsgBox(message)
+}
+
+CancelClick(builderRef, *) {
+    builderRef.gui.Hide()
+}
+
 
 ; --- Hot Key Section ---
 
-; ^!F1::{
-; }
+^!F1::{
+    ExampleUsage()
+}
 ; ^!F2::{
 ; }
 ; ^!F3::{
