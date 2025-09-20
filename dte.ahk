@@ -145,7 +145,7 @@ class GUIBuilder {
         this.controls[controlName . "_button"] := buttonCtrl
 
         ; Update Y position for next control
-        group.currentY += this.controlHeight + this.controlSpacing
+        group.currentY += 2 * this.controlSpacing
 
         return {button: buttonCtrl}
     }
@@ -189,7 +189,7 @@ class GUIBuilder {
     }
 
     ; Show the GUI
-    Show(options := "w400 h300") {
+    Show(options := "AutoSize Center") {
         this.gui.Show(options)
     }
 
@@ -1198,7 +1198,7 @@ UpdateConfigs(){
     builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
 
     ; Create a GroupBox for local configuration information
-    localGroup := builder.CreateGroupBox("localInfo", "Local Settings", 10, 10, 350, 69)
+    localGroup := builder.CreateGroupBox("localInfo", "Local Settings", 10, 10, 380, 69)
 
     ; Add controls to the GroupBox
     builder.AddTextEditPair("localInfo", "username", "Username:", 100, IniRead(GlobalConfigFile,"Local","User"))
@@ -1206,7 +1206,7 @@ UpdateConfigs(){
     builder.controls["usernameUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"Local","User",builder.controls["username_edit"]))
 
     ; Create a GroupBox for term context configuration information
-    termGroup := builder.CreateGroupBox("termInfo", "Term Settings", 10, , 350, 69)
+    termGroup := builder.CreateGroupBox("termInfo", "Term Settings", 10, , 380, 69)
 
     ; Add controls to the GroupBox
     builder.AddTextEditPair("termInfo", "currentTerm", "Current Term:", 72, IniRead(GlobalConfigFile,"TermContext","CurrentTerm"))
@@ -1214,19 +1214,26 @@ UpdateConfigs(){
     builder.controls["currentTermUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"TermContext","CurrentTerm",builder.controls["currentTerm_edit"]))
 
     ; Create a GroupBox for session configuration information
-    sessionGroup := builder.CreateGroupBox("sessionInfo", "Session Settings", 10, , 350, 69)
+    sessionGroup := builder.CreateGroupBox("sessionInfo", "Session Settings", 10, , 380, 69)
 
     ; Add controls to the GroupBox
     builder.AddTextDropDownListPair("sessionInfo", "systemSpeed", "System Speed:", ["1 (Normal)","2","3","4","5 (Slow)"], 100, IniRead(GlobalConfigFile,"SessionContext","SystemSpeed"))
     builder.AddUpdateButton("sessionInfo", "systemSpeedUpdate", "Update", 200, "p")
+    builder.controls["systemSpeedUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"SessionContext","SystemSpeed",builder.controls["systemSpeed_dropdown"]))
 
     ; Create a GroupBox for appearance configuration information
-    appearanceGroup := builder.CreateGroupBox("appearanceInfo", "Appearance Settings", 10, , 350, 121)
+    appearanceGroup := builder.CreateGroupBox("appearanceInfo", "Appearance Settings", 10, , 380, 150)
 
     ; Add controls to the GroupBox
-    builder.AddTextDropDownListPair("appearanceInfo", "fontName", "Font:", ["Lucia Sans"], 200, 1)
-    builder.AddTextDropDownListPair("appearanceInfo", "fontSize", "Font Size:", ["8","10","12","14","16"], 200, 3)
-    builder.AddTextDropDownListPair("appearanceInfo", "theme", "Theme:", ["Light", "Dark"], 200, 1)
+    builder.AddTextDropDownListPair("appearanceInfo", "fontName", "Font:", ["Lucia Sans"], 128, 1)
+    builder.AddUpdateButton("appearanceInfo", "fontNameUpdate", "Update (dev)", 228, "p", 120)
+
+    builder.AddTextDropDownListPair("appearanceInfo", "fontSize", "Font Size:", ["8","10","12","14","16"], 72, Integer((0.5)*(Integer(IniRead(GlobalConfigFile,"Appearance","FontSize")) - 6)))
+    builder.AddUpdateButton("appearanceInfo", "fontSizeUpdate", "Update", 228, "p")
+    builder.controls["fontSizeUpdate_button"].OnEvent("Click",UpdateConfig.Bind(,,"Appearance","FontSize",builder.controls["fontSize_dropdown"]))
+
+    builder.AddTextDropDownListPair("appearanceInfo", "theme", "Theme:", ["Light", "Dark"], 72, 1)
+    builder.AddUpdateButton("appearanceInfo", "themeUpdate", "Update (dev)", 228, "p", 120)
 
     ; Add standard buttons
     buttons := builder.AddStandardButtons(["OK", "Cancel"])
