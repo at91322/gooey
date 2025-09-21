@@ -92,7 +92,7 @@ class GUIBuilder {
         dropDownCtrl := this.gui.Add("DropDownList", Format("x{1} y{2} w{3} Choose{4}", group.x + 85, group.currentY, dropDownWidth, defaultSelection), items)
 
         ; Store controls
-        group.controls[controlName] := {label: labelCtrl, edit: dropDownCtrl}
+        group.controls[controlName] := {label: labelCtrl, dropDown: dropDownCtrl}
         this.controls[controlName . "_label"] := labelCtrl
         this.controls[controlName . "_dropdown"] := dropDownCtrl
 
@@ -121,14 +121,38 @@ class GUIBuilder {
         checkBoxCtrl := this.gui.Add("CheckBox", checkOptions, checkBoxText)
 
         ; Store controls
-        group.controls[controlName] := {label: labelCtrl, edit: checkBoxCtrl}
+        group.controls[controlName] := {label: labelCtrl, checkBox: checkBoxCtrl}
         this.controls[controlName . "_label"] := labelCtrl
         this.controls[controlName . "_checkbox"] := checkBoxCtrl
 
         ; Update Y position for next control
         group.currentY += this.controlHeight + this.controlSpacing
 
-        return {label: labelCtrl, dropDown: checkBoxCtrl}
+        return {label: labelCtrl, checkBox: checkBoxCtrl}
+    }
+
+    AddTextDateTimePair(groupName, controlName, labelText, dateTimeWidth := 120){
+        if(!this.groupBoxes.Has(groupName)){
+            throw Error("GroupBox '" . groupName . "' not found.")
+        }
+
+        group := this.groupBoxes[groupName]
+
+        ; Add a label
+        labelCtrl := this.gui.Add("Text", Format("x{1} y{2} w80", group.x, group.currentY), labelText)
+
+        ; Add datepicker control next to label
+        dateCtrl := this.gui.Add("DateTime", Format("x{1} y{2} w{3}", group.x +85, group.currentY, dateTimeWidth),)
+
+        ; Store controls
+        group.controls[controlName] := {label: labelCtrl, date: dateCtrl}
+        this.controls[controlName . "_label"] := labelCtrl
+        this.controls[controlName . "_date"] := dateCtrl
+
+        ; Update Y position for next control
+        group.currentY += this.controlHeight + this.controlSpacing
+
+        return {label: labelCtrl, date: dateCtrl}
     }
 
     AddUpdateButton(groupName, controlName, buttonText, buttonXpos, buttonYpos, buttonWidth := 80){
