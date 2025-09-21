@@ -91,7 +91,7 @@ class GUIBuilder {
         dropDownCtrl := this.gui.Add("DropDownList", Format("x{1} y{2} w{3} Choose{4}", group.x + 85, group.currentY, dropDownWidth, defaultSelection), items)
 
         ; Store controls
-        group.controls[controlName] := {label: labelCtrl, edit: dropDownCtrl}
+        group.controls[controlName] := {label: labelCtrl, dropDown: dropDownCtrl}
         this.controls[controlName . "_label"] := labelCtrl
         this.controls[controlName . "_dropdown"] := dropDownCtrl
 
@@ -120,14 +120,38 @@ class GUIBuilder {
         checkBoxCtrl := this.gui.Add("CheckBox", checkOptions, checkBoxText)
 
         ; Store controls
-        group.controls[controlName] := {label: labelCtrl, edit: checkBoxCtrl}
+        group.controls[controlName] := {label: labelCtrl, checkBox: checkBoxCtrl}
         this.controls[controlName . "_label"] := labelCtrl
         this.controls[controlName . "_checkbox"] := checkBoxCtrl
 
         ; Update Y position for next control
         group.currentY += this.controlHeight + this.controlSpacing
 
-        return {label: labelCtrl, dropDown: checkBoxCtrl}
+        return {label: labelCtrl, checkBox: checkBoxCtrl}
+    }
+
+    AddTextDateTimePair(groupName, controlName, labelText, dateTimeWidth := 120){
+        if(!this.groupBoxes.Has(groupName)){
+            throw Error("GroupBox '" . groupName . "' not found.")
+        }
+
+        group := this.groupBoxes[groupName]
+
+        ; Add a label
+        labelCtrl := this.gui.Add("Text", Format("x{1} y{2} w80", group.x, group.currentY), labelText)
+
+        ; Add datepicker control next to label
+        dateCtrl := this.gui.Add("DateTime", Format("x{1} y{2} w{3}", group.x +85, group.currentY, dateTimeWidth),)
+
+        ; Store controls
+        group.controls[controlName] := {label: labelCtrl, date: dateCtrl}
+        this.controls[controlName . "_label"] := labelCtrl
+        this.controls[controlName . "_date"] := dateCtrl
+
+        ; Update Y position for next control
+        group.currentY += this.controlHeight + this.controlSpacing
+
+        return {label: labelCtrl, date: dateCtrl}
     }
 
     AddUpdateButton(groupName, controlName, buttonText, buttonXpos, buttonYpos, buttonWidth := 80){
@@ -236,7 +260,6 @@ class GUIBuilder {
         return buttonControls
     }
 }
-
 
 ; **********************************************************************************************************************
 ; ************************************************** FUNCTION SECTION **************************************************
@@ -486,18 +509,19 @@ posGObtn(GuiControlObj, Info){
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& DIPLOMA DATES Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; A callback function for moving from the main GUI to the DiplomaDates GUI
 diplOPENbtn(GuiControlObj, Info, builderRef){
-    DiplDates_GUI.Show("AutoSize Center")
     builderRef.gui.Hide()
+    DiplDatesGooey()
 }
 
-diplToMain(GuiControlObj, Info){
-    DiplDates_GUI.Hide()
+diplToMain(GuiControlObj, Info, builderRef){
+    builderRef.gui.Hide()
     dteGooey()
 }
 
 ; A callback function to initiate the mass batch diploma date process
-diplGObtn(GuiControlObj, Info, startRow, endRow, orderedOn, mailedOn){
-    DiplomaDates(startRow,endRow,orderedOn,mailedOn)
+diplGObtn(GuiControlObj, Info, startRow, endRow, orderedOn, mailedOn, builderRef){
+    builderRef.gui.Hide()
+    DiplomaDates(startRow.Value,endRow.Value,orderedOn,mailedOn)
 }
 
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& ARTICULATOR Callbacks &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -1198,14 +1222,12 @@ Articulator(startRow,endRow){
     }
 }
 
-
 ; **********************************************************************************************************************
 ; **************************************************** GUI SECTION *****************************************************
 ; **********************************************************************************************************************
-; The utility GUIs and Menus
-
-; New Look Update Global Configs GUI
-UpdateConfigs(){
+; --- Utility GUIs ---
+; Update Global Configs
+UpdateConfigsGooey(){
     ; Create a new GUI builder
     builder := GUIBuilder("DTE  |  Update Global Configurations", "Resize")
     builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
@@ -1261,42 +1283,51 @@ UpdateConfigs(){
     
     return builder
 }
-
 ; The sub-GUIs
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Diploma Dates GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; SHADIPL
-DiplDates_GUI := Gui("AlwaysOnTop", "DTE  |  Diploma Dates")
-    DiplDates_GUI.SetFont("S" . FONT_SIZE, FONT_NAME)
-    DiplDates_GUI.Add("Text",,"Welcome to the diploma dates tool. `n")
+DiplDatesGooey(){
+    ; Create a new GUI builder
+    builder := GUIBuilder("DTE  |  Term Builder", "Resize")
+    builder.gui.SetFont("S" . FONT_SIZE, FONT_NAME)
 
-    DiplDates_GUI.Add("Text","section w95   ","Order date:")
-    diplOrderDate := DiplDates_GUI.Add("DateTime","w120 yp")
-    orderYear := SubStr(diplOrderDate.Value,1,4)
-    orderMonth := SubStr(diplOrderDate.Value,5,2)
-    orderDay := SubStr(diplOrderDate.Value,7,2)
+     ; Welcome Text and username/current term info
+    builder.gui.Add("Text",,"Welcome to the diploma dates tool")
+    
+    ; Create groupbox
+    diplDatesGB := builder.CreateGroupBox("diplDates", "Enter Diploma Dates - SHADIPL", 10, FONT_SIZE * 4, 250, FONT_SIZE * 12)
+
+    ; Add input control elements
+    builder.AddTextDateTimePair("diplDates", "orderDate", "Ordered:")
+    orderYear := SubStr(builder.controls["orderDate_date"].Value,1,4)
+    orderMonth := SubStr(builder.controls["orderDate_date"].Value,5,2)
+    orderDay := SubStr(builder.controls["orderDate_date"].Value,7,2)
     orderedOn := orderYear "/" orderMonth "/" orderDay
 
-    DiplDates_GUI.Add("Text","w95 xs yp+32","Mailed date:")
-    diplMailDate := DiplDates_GUI.Add("DateTime","w120 yp")
-    mailYear := SubStr(diplMailDate.Value,1,4)
-    mailMonth := SubStr(diplMailDate.Value,5,2)
-    mailDay := SubStr(diplMailDate.Value,7,2)
-    mailedOn := mailYear "/" mailMonth "/" mailDay
+    builder.AddTextDateTimePair("diplDates", "mailDate", "Mailed:")
+    mailedYear := SubStr(builder.controls["mailDate_date"].Value,1,4)
+    mailedMonth := SubStr(builder.controls["mailDate_date"].Value,5,2)
+    mailedDay := SubStr(builder.controls["mailDate_date"].Value,7,2)
+    mailedOn := mailedYear "/" mailedMonth "/" mailedDay
 
-    DiplDates_GUI.Add("Text","section ys","Start row:")
-    start_dipldates := DiplDates_GUI.Add("Edit","w60 yp Number Limit 3")
-    start_dipldates.OnEvent("Change",AutoTabGUI.Bind(,,3))
+    builder.AddTextEditPair("diplDates", "startRow", "Start row:", FONT_SIZE * 4,)
+    builder.controls["startRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,3))
 
-    DiplDates_GUI.Add("Text","xs yp+32","End row:")
-    end_dipldates := DiplDates_GUI.Add("Edit","w66 yp Number Limit 3")
-    end_dipldates.OnEvent("Change",AutoTabGUI.Bind(,,3))
+    builder.AddTextEditPair("diplDates", "endRow", "End row:", FONT_SIZE * 4,)
+    builder.controls["endRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,3))
 
-    diplCLOSE := DiplDates_GUI.Add("Button","NoTab","Home",)
-    diplCLOSE.OnEvent("Click", diplToMain)
+    ; Add buttons
+    buttons := builder.AddStandardButtons(["GO", "Home"])
+
+    ; Set up button events
+    buttons["GO"].OnEvent("Click",diplGObtn.Bind(,,builder.controls["startRow_edit"], builder.controls["endRow_edit"], orderedOn, mailedOn, builder))
+    buttons["Home"].OnEvent("Click", diplToMain.Bind(,,builder))
     
-    diplGO := DiplDates_GUI.Add("Button","yp","GO")
-    diplGO.OnEvent("Click",diplGObtn.Bind(,,start_dipldates,end_dipldates,orderedOn,mailedOn))
-
+    ; Show the GUI
+    builder.Show("AutoSize Center")
+    
+    return builder
+}
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Term Builder GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; SHATRNS
 TermBuilderGooey(){
@@ -1323,7 +1354,7 @@ TermBuilderGooey(){
     builder.AddTextEditPair("termBuilder","endRow", "End row:", FONT_SIZE * 4,)
     builder.controls["endRow_edit"].OnEvent("Change",AutoTabGUI.Bind(,,2))
 
-   ; Add buttons
+    ; Add buttons
     buttons := builder.AddStandardButtons(["GO", "Home"])
 
     ; Set up button events
@@ -1366,7 +1397,6 @@ TranscriptReviewGooey(){
     
     return builder
 }
-
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The Articulator GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; SHATATR
 ArticulatorGooey(){
@@ -1398,7 +1428,6 @@ ArticulatorGooey(){
     
     return builder
 }
-
 ; Pops up during Articulator to prompt the user about attributes
 Attributes_GUI := Gui("AlwaysOnTop", "Add Attributes")
     Attributes_GUI.SetFont("S" . FONT_SIZE,FONT_NAME)
@@ -1499,7 +1528,6 @@ ProgramChange_GUI := Gui("AlwaysOnTop", "DTE  |  Program Changes")
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& The MAIN GUI &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 ; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
 dteGooey(){
     ; Create a new GUI builder
     builder := GUIBuilder("DTE Helper Tool", "Resize")
@@ -1557,13 +1585,12 @@ dteGooey(){
 }
 ; --- Access GUI to update Global Configs ---
 ^!F2::{
-    UpdateConfigs()
+    UpdateConfigsGooey()
 }
 ; ^!F3::{
 ; }
 
 ; POS Change Hot Keys
-
 ^!F4::{
     global GlobalConfigFile
     LastName := StrUpper(SubStr(IniRead(GlobalConfigFile,"Local","User"),1,1)) . SubStr(IniRead(GlobalConfigFile,"Local","User"),2,StrLen(IniRead(GlobalConfigFile,"Local","User")) - 2)
@@ -1579,7 +1606,6 @@ dteGooey(){
 
     Press("{Enter}",1,50,1000)
 }
-
 ^!F5::{
     SendTermSnippet("Replaced ____ with ____ as primary program of study in {NextTerm} with same catalog term")
     return
@@ -1603,7 +1629,6 @@ dteGooey(){
 
 ; ^!F10::{
 ; }
-
 ; ^!F11::{
 ; }
 
@@ -1613,7 +1638,7 @@ dteGooey(){
 }
 
 ; **********************************************************************************************************************
-; *************************************************** DEBUG SECTION ****************************************************
+; **************************************************** RUN SECTION *****************************************************
 ; **********************************************************************************************************************
 
 ; **** Go Time ****
